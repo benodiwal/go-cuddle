@@ -92,6 +92,94 @@ func main() {
 }
 
 ```
+### Raw Implementation
+```go
+package main
+
+import (
+    "encoding/json"
+    "log"
+    "net/http"
+    "time"
+
+    "github.com/benodiwal/go-cuddle"
+)
+
+var (
+    validUsername = "user"
+    validPassword = "password"
+)
+
+func main() {
+    sessionManager := gocuddle.NewManager(
+        gocuddle.WithName("session"),
+        gocuddle.WithKeys([]string{"your-secret-key"}),
+        gocuddle.WithSecure(true),
+        gocuddle.WithHTTPOnly(true),
+        gocuddle.WithSameSite(http.SameSiteNoneMode),
+        gocuddle.WithMaxAge(24*time.Hour),
+    )
+
+    http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+            http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+            return
+        }
+
+        username := r.FormValue("username")
+        password := r.FormValue("password")
+
+        if username == validUsername && password == validPassword {
+            session := sessionManager.GetSession(r)
+            session.Values["authenticated"] = true
+            session.Values["username"] = username
+            session.Changed = true
+
+            sessionManager.Save(w, r, session)
+
+            w.WriteHeader(http.StatusOK)
+            json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+        } else {
+            w.WriteHeader(http.StatusUnauthorized)
+            json.NewEncoder(w).Encode(map[string]string{"message": "Invalid credentials"})
+        }
+    })
+
+    http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+            http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+            return
+        }
+
+        session := sessionManager.GetSession(r)
+        session.Values["authenticated"] = false
+        session.Values["username"] = ""
+        session.Changed = true
+
+        sessionManager.Save(w, r, session)
+
+        w.WriteHeader(http.StatusOK)
+        json.NewEncoder(w).Encode(map[string]string{"message": "Logout successful"})
+    })
+
+    http.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
+        session := sessionManager.GetSession(r)
+        if auth, ok := session.Values["authenticated"].(bool); ok && auth {
+            w.WriteHeader(http.StatusOK)
+            json.NewEncoder(w).Encode(map[string]interface{}{
+                "message":  "Welcome to the dashboard!",
+                "username": session.Values["username"],
+            })
+        } else {
+            w.WriteHeader(http.StatusUnauthorized)
+            json.NewEncoder(w).Encode(map[string]string{"message": "Please log in first"})
+        }
+    })
+
+    log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+```
 
 ## Session Options
 go-cuddle provides several options to configure session behavior:
