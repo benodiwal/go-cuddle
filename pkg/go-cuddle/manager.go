@@ -14,3 +14,16 @@ type Manager struct {
 	httpOnly bool
 	sameSite http.SameSite
 }
+
+func NewManager(options ...Option) *Manager {
+	m := &Manager{
+		sessions: make(map[string]*Session),
+		lifetime: 24 * time.Hour,
+	}
+
+	for _, option := range options {
+		option(m)
+	}
+
+	return m
+}
