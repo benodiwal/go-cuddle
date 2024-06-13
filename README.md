@@ -102,3 +102,7 @@ go-cuddle provides several options to configure session behavior:
 - `WithHTTPOnly(httpOnly bool)`: Marks the cookie as HTTPOnly.
 - `WithSameSite(sameSite http.SameSite)`: Sets the SameSite attribute.
 - `WithMaxAge(maxAge time.Duration)`: Sets the maximum age of the session.
+
+## LICENSE
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
